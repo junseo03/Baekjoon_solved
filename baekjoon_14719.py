@@ -1,3 +1,4 @@
+#fkndndf
 H , W = map(int,(input().split()))
 block = list(map(int,(input().split())))
 check = False
