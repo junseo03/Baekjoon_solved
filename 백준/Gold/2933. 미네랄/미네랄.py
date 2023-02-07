@@ -1,93 +1,95 @@
-from collections import deque
 import sys
+from collections import deque
 
-input = sys.stdin.readline
-dx = [1, -1, 0, 0]
-dy = [0, 0, 1, -1]
+dx = [-1,1,0,0]
+dy = [0,0,-1,1]
 
-def destroy(i, left):
-    i, j = r - i, 0
-    if left == 1:
-        for k in range(c):
-            if a[i][k] == 'x':
-                a[i][k] = '.'
-                j = k
-                break
+def destroy(left,stick):
+    if left:
+        for i in range(C):
+            if cave[stick][i] == 'x':
+                cave[stick][i] = '.'
+                return (i,stick)
     else:
-        for k in range(c-1, -1, -1):
-            if a[i][k] == 'x':
-                a[i][k] = '.'
-                j = k
-                break
+        for i in range(C-1,-1,-1):
+            if cave[stick][i] == 'x':
+                cave[stick][i] = '.'
+                return (i,stick)
+    return (-1,-1)
 
-    for k in range(4):
-        ni = i + dx[k]
-        nj = j + dy[k]
-        if 0 <= ni < r and 0 <= nj < c:
-            if a[ni][nj] == 'x':
-                dq.append([ni, nj])
-
-def bfs(x, y):
+def search(x,y):
+    falling = True
     q = deque()
-    check = [[0]*c for _ in range(r)]
-    fall_list = []
-    q.append([x, y])
-    check[x][y] = 1
+    dq = deque()
+    q.append((x,y))
+    if 0<=x<C and 0<=y<R:
+        if cave[y][x] =='x':
+            dq.append((x,y))
+    visit = [[0 for _ in range(C)] for _ in range(R)]
     while q:
-        x, y = q.popleft()
-        if x == r-1:
-            return
-        if a[x+1][y] == '.':
-            fall_list.append([x, y])
+        xx,yy  = q.popleft()
         for i in range(4):
-            nx = x + dx[i]
-            ny = y + dy[i]
-            if 0 <= nx < r and 0 <= ny < c:
-                if a[nx][ny] == 'x' and not check[nx][ny]:
-                    check[nx][ny] = 1
-                    q.append([nx, ny])
+            xxx = xx+dx[i]; yyy = yy+dy[i]
+            if 0<=xxx<C and 0<=yyy<R:
+                if not visit[yyy][xxx]:
+                    visit[yyy][xxx]+=1
+                    if cave[yyy][xxx] == 'x':
+                        if yyy==R-1:
+                            q.clear()
+                            falling = False
+                        else: 
+                            q.append((xxx,yyy))
+                            dq.append((xxx,yyy))
+    if len(dq)-1<0:
+        falling =False       
+    return (falling,dq)
 
-    fall(check, fall_list)
+def fall(q):
+    x,y = q
+    q = deque()
+    for i in range(4):
+        xx = x+dx[i]; yy = y+dy[i]
+        
+        falling,dq = search(xx,yy)
+        if falling:
+            tmp = deque()
+            while falling:
+                tmp.clear()
+                while dq:
+                    xx,yy = dq.popleft()
+                    q.append((xx,yy+1))
+                    tmp.append((xx,yy+1))
+                    cave[yy][xx] = '.'
+                for qq in q:
+                    dq.append(qq)
+                while q:
+                    xx,yy = q.popleft()
+                    cave[yy][xx] = 'x'
+                    if yy == R-1:
+                        falling = False
+                    elif cave[yy+1][xx] =='x' and (xx,yy+1) not in dq:
+                        falling = False
+            return 0
+    return 0
 
-def fall(check, fall_list):
-    k, flag = 1, 0
-    while True:
-        for i, j in fall_list:
-            if i + k == r-1:
-                flag = 1
-                break
-            if a[i+k+1][j] == 'x' and not check[i+k+1][j]:
-                flag = 1
-                break
-        if flag:
-            break
-        k += 1
+R,C = map(int,sys.stdin.readline().split())
 
-    for i in range(r-2, -1, -1):
-        for j in range(c):
-            if a[i][j] == 'x' and check[i][j]:
-                a[i][j] = '.'
-                a[i+k][j] = 'x'
+cave = [[] for _ in range(R)]
 
-r, c = map(int, input().split())
-a = [list(input().strip()) for _ in range(r)]
-n = int(input())
-s = list(map(int, input().split()))
-dq = deque()
+for i in range(R):
+    line =  list(sys.stdin.readline()[:-1])
+    cave[i] = line
 
-left = 1
-while n:
-    index = s.pop(0)
-    destroy(index, left)
+N = int(sys.stdin.readline())
+S = list(map(int,sys.stdin.readline().rstrip('\n').split()))
 
-    while dq:
-        x, y = dq.popleft()
-        bfs(x, y)
-
-    left *= -1
-    n -= 1
-
-for i in range(r):
-    for j in range(c):
-        print(a[i][j], end='')
+toggle = 0
+for i in range(N):
+    toggle+=1
+    x,y = destroy((toggle)%2,R-S[i])    
+    if y+x !=-2:
+        fall((x,y))
+for i in cave:
+    for j in i:
+        print(j, end='')
     print()
